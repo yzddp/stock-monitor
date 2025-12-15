@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 将应用代码复制到容器中
 COPY . .
 
-# 声明容器运行时暴露的端口（需要与您app.py中运行的端口一致，例如9000）
-EXPOSE 9000
+# 声明容器运行时暴露的端口（关键：使用80端口）
+EXPOSE 80
 
 # 启动命令
 CMD ["python", "app.py"]
