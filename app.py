@@ -45,15 +45,81 @@ def init_db():
 db_conn = init_db()
 
 # 你的股票价格接口函数
+# 股票价格接口 - 使用东方财富API
 def get_stock_price(symbol):
     """
-    这里替换成你的实际股票查询接口
-    示例格式：返回一个浮点数，如 100.5
-    现在先用模拟数据测试
+    使用东方财富API获取股票实时价格
+    参数symbol: 股票代码，如 "000001", "603777"
+    返回: 当前价格（浮点数）或 None（如果获取失败）
     """
-    import random
-    # 模拟价格，你可以随时替换成你的接口
-    return round(10 + random.random() * 10, 2)
+    try:
+        import requests
+        import json
+        
+        # 根据股票代码判断市场（上海或深圳）
+        if symbol.startswith('6'):
+            secid = f"1.{symbol}"  # 上海证券交易所
+        elif symbol.startswith('0') or symbol.startswith('3'):
+            secid = f"0.{symbol}"  # 深圳证券交易所
+        else:
+            return None
+        
+        # 东方财富API URL
+        url = f"https://push2.eastmoney.com/api/qt/stock/get"
+        params = {
+            'secid': secid,
+            'fields': 'f43,f57,f58,f169,f170,f46,f44,f51,f168,f47,f164,f163,f116,f60,f45,f52,f50,f48,f167,f117,f71,f161,f49,f530,f135,f136,f137,f138,f139,f141,f142,f144,f145,f147,f148,f140,f143,f146,f149,f55,f62,f162,f92,f173,f104,f105,f84,f85,f183,f184,f185,f186,f187,f188,f189,f190,f191,f192,f107,f111,f86,f177,f78,f110,f262,f263,f264,f267,f268,f250,f251,f252,f253,f254,f255,f256,f257,f258,f266,f269,f270,f271,f273,f274,f275,f127,f199,f128,f193,f196,f194,f195,f197,f80,f280,f281,f282,f284,f285,f286,f287,f292'
+        }
+        
+        # 设置请求头，模拟浏览器访问
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://quote.eastmoney.com/'
+        }
+        
+        # 发送请求
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # 检查API返回状态
+            if data.get('rc') == 0 and data.get('data'):
+                stock_data = data['data']
+                
+                # f43字段表示最新价
+                current_price = stock_data.get('f43')
+                
+                if current_price is not None:
+                    return float(current_price)
+                else:
+                    # 如果f43为空，尝试其他价格字段
+                    # f58表示最新价（备用）
+                    alt_price = stock_data.get('f58')
+                    if alt_price is not None:
+                        return float(alt_price)
+                    
+                    print(f"获取股票 {symbol} 价格失败: 价格字段为空")
+                    return None
+            else:
+                print(f"获取股票 {symbol} 价格失败: API返回异常 {data}")
+                return None
+        else:
+            print(f"获取股票 {symbol} 价格失败: HTTP状态码 {response.status_code}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        print(f"获取股票 {symbol} 价格超时")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"获取股票 {symbol} 价格网络错误: {e}")
+        return None
+    except (ValueError, KeyError, TypeError) as e:
+        print(f"解析股票 {symbol} 价格数据错误: {e}")
+        return None
+    except Exception as e:
+        print(f"获取股票 {symbol} 价格未知错误: {e}")
+        return None
 
 @app.route('/')
 def home():
